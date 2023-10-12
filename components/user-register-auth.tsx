@@ -5,6 +5,10 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
+import { useToast } from '@/components/ui/use-toast'
+import { ToastAction } from "@/components/ui/toast"
+
+import { useRouter } from 'next/navigation'
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -17,6 +21,10 @@ export const UserRegisterForm = ({
   className,
   ...props
 }: UserAuthFormProps) => {
+  const { toast } = useToast()
+
+  const router = useRouter()
+
   const [data, setData ] = useState<IUser>({
     name: '',
     email: '',
@@ -39,7 +47,17 @@ export const UserRegisterForm = ({
     const response = await request.json()
 
     if(!request.ok){
-      console.log('Error')
+      toast({
+        title: 'Oooops...',
+        description: response.error,
+        variant: 'destructive',
+        action: (
+          <ToastAction altText="Tente Novamente">Tente Novamente</ToastAction>
+        )
+      })
+    } else {
+      console.log('resp', response)
+      router.push('/login')
     }
 
     setData({
