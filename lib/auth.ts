@@ -3,6 +3,8 @@ import CredentialProvider from 'next-auth/providers/credentials'
 import GithubProvider from 'next-auth/providers/github'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { db } from '@/lib/db'
+import { db as prisma } from '@/lib/db'
+import bcrypt from 'bcrypt'
 
 export const authOptions : NextAuthOptions = {
   adapter: PrismaAdapter(db as any),
@@ -20,9 +22,25 @@ export const authOptions : NextAuthOptions = {
       },
       async authorize(credentials, req): Promise<any> {
         console.log('authorize', credentials)
-        const user = { email: 'eliashead.costa@gmail.com', password: '123456', name: 'Elias Head'}
+        if(!credentials?.email || !credentials?.password) throw new Error('Dados de login necessarios')
 
-        return user
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials?.email
+          }
+        })
+
+        console.log("USER", user)
+
+        if(!user || !user.hashedPassword) {
+          throw new Error('Usuário não resgistrado por credenciais')
+        }
+        
+        const matchPassword = await bcrypt.compare(credentials.password, user.hashedPassword)
+
+        if(!matchPassword) throw new Error('senha incorreta')
+
+        return user 
       }
     })
   ],
@@ -30,5 +48,8 @@ export const authOptions : NextAuthOptions = {
     strategy: 'jwt'
   },
   secret: process.env.SECRET,
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.NODE_ENV === 'development',
+  pages: {
+    signIn: '/login'
+  }
 }
